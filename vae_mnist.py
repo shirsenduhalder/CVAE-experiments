@@ -126,7 +126,7 @@ latent_dim = 50
 num_examples = 16
 
 random_vector = tf.random_normal(shape=[num_examples, latent_dim])
-model = CVAE(latent_dim)
+model = CVAE(latent_dim, use_BN=True)
 
 def save_images(model, epoch, test_input, use_BN=False):
 	predictions = model.sample(test_input)
@@ -144,7 +144,8 @@ def save_images(model, epoch, test_input, use_BN=False):
 
 	plt.savefig(os.path.join(savedir, 'image_at_epoch_{:04d}.png'.format(epoch)))
 
-save_images(model, 0, random_vector)
+use_BN = True
+save_images(model, 0, random_vector, use_BN)
 
 for epoch in range(1, epochs + 1):
 	start_time = time.time()
@@ -161,8 +162,9 @@ for epoch in range(1, epochs + 1):
 		display.clear_output(wait=False)
 
 		print("Epoch: {}, Test set ELBO: {}, time taken: {}".format(epoch, elbo, (end_time - start_time)))
-		save_images(model, epoch, random_vector)
+		save_images(model, epoch, random_vector, use_BN)
 
+create_gifs(use_BN)
 
 def display_image_epoch(epoch_no, use_BN):
 	savedir = 'BatchNorm' if use_BN else 'NoBatchNorm'
@@ -170,4 +172,21 @@ def display_image_epoch(epoch_no, use_BN):
 
 	return PIL.Image.open(os.path.join(savedir, 'image_at_epoch_{:04d}.png'.format(epoch_no)))
 
-display_image_epoch(epochs)
+def create_gifs(use_BN):
+	savedir = 'BatchNorm' if use_BN else 'NoBatchNorm'
+	text = 'BN' if use_BN == True else 'noBN' 
+	with imageio.get_writer('cvae_{}.gif'.format(text), mode='I') as writer:
+		filenames = glob2.glob(savedir+"/*.png")
+		filenames = sorted(filenames)
+		last = -1
+
+		for idx, filename in enumerate(filenames):
+			frame = 2*(idx**0.5)
+			if round(frame) > round(last):
+				last = frame
+			else:
+				continue
+			image = imageio.imread(filename)
+			writer.append_data(image)
+		image = imageio.imread(filename)
+		writer.append_data(image)
